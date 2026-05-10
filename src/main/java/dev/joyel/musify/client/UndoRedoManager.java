@@ -1,4 +1,4 @@
-package aqys.Musify.client;
+package dev.joyel.musify.client;
 
 import java.util.Stack;
 import net.fabricmc.api.EnvType;

@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "musify",
+	"version": "J1",
+	"name": "Musify",
+	"description": "Display your currently playing Spotify track in a beautiful, customizable HUD overlay. Features synced lyrics, album art, playback controls, and extensive customization options.",
+	"authors": [
+		"aqys"
+	],
+	"contact": {
+		"homepage": "https://modrinth.com/mod/musify",
+		"sources": "https://github.com/JoyelTheDev/musify",
+		"issues": "https://github.com/JoyelTheDev/musify/issues"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/musify/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"dev.joyel.musify.Melodify"
+		],
+		"client": [
+			"dev.joyel.musify.MelodifyClient"
+		]
+	},
+	"mixins": [
+		"melodify.mixins.json",
+		{
+			"config": "melodify.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

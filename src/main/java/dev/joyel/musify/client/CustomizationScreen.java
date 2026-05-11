@@ -7,6 +7,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
@@ -60,18 +61,21 @@ public class CustomizationScreen extends Screen {
       int currentY = this.height / 2 - 50;
       ConfigManager config = ConfigManager.getInstance();
       boolean hasCredentials = config.hasCustomSpotifyCredentials();
-      this.addDrawableChild(ButtonWidget.builder(Text.literal("§e⚙ Configure Spotify App" + (hasCredentials ? " §a✓" : "")), (button) -> 
+      ButtonWidget configButton = ButtonWidget.builder(Text.literal("§e⚙ Configure Spotify App" + (hasCredentials ? " §a✓" : "")), (button) -> 
          MinecraftClient.getInstance().setScreen(new SpotifyCredentialsScreen(this)))
          .dimensions(centerX - scaledContentWidth / 2, currentY, scaledContentWidth, scaledButtonHeight)
-         .tooltip(ButtonWidget.TooltipSupplier.create(Text.translatable("Set up your own Spotify app credentials (required for most users)")))
-         .build());
+         .build();
+      configButton.setTooltip(Tooltip.of(Text.translatable("Set up your own Spotify app credentials (required for most users)")));
+      this.addDrawableChild(configButton);
+      
       currentY += scaledRowSpacing;
-      this.addDrawableChild(ButtonWidget.builder(Text.literal("§a▶ Connect with Spotify"), (button) -> {
+      ButtonWidget connectButton = ButtonWidget.builder(Text.literal("§a▶ Connect with Spotify"), (button) -> {
          SpotifyApiClient.getInstance().startAuthorization();
          button.setMessage(Text.literal("§eOpening browser..."));
-      }).dimensions(centerX - scaledContentWidth / 2, currentY, scaledContentWidth, scaledButtonHeight)
-      .tooltip(ButtonWidget.TooltipSupplier.create(Text.translatable("Connect your Spotify account")))
-      .build());
+      }).dimensions(centerX - scaledContentWidth / 2, currentY, scaledContentWidth, scaledButtonHeight).build();
+      connectButton.setTooltip(Tooltip.of(Text.translatable("Connect your Spotify account")));
+      this.addDrawableChild(connectButton);
+      
       currentY += scaledRowSpacing + 20;
       this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), (button) -> this.close())
          .dimensions(centerX - scaledContentWidth / 2, currentY, scaledContentWidth, scaledButtonHeight)
@@ -81,14 +85,16 @@ public class CustomizationScreen extends Screen {
    private void initSettingsUI(int leftCol, int rightCol, int centerX, int scaledContentWidth, int scaledButtonHeight, int scaledSmallButtonWidth, int scaledRowSpacing, int scaledSectionSpacing, float guiScale) {
       int currentY = (int)(52.0F * guiScale);
       currentY += (int)(14.0F * guiScale);
-      this.addDrawableChild(ButtonWidget.builder(Text.literal("Position: §f" + this.settings.getPosition().getDisplayName()), (button) -> {
+      
+      ButtonWidget positionButton = ButtonWidget.builder(Text.literal("Position: §f" + this.settings.getPosition().getDisplayName()), (button) -> {
          this.pushUndo();
          this.settings.cyclePosition();
          button.setMessage(Text.literal("Position: §f" + this.settings.getPosition().getDisplayName()));
          this.saveSettings();
-      }).dimensions(leftCol, currentY, scaledContentWidth, scaledButtonHeight)
-      .tooltip(ButtonWidget.TooltipSupplier.create(Text.literal("§7Click to cycle HUD position")))
-      .build());
+      }).dimensions(leftCol, currentY, scaledContentWidth, scaledButtonHeight).build();
+      positionButton.setTooltip(Tooltip.of(Text.literal("§7Click to cycle HUD position")));
+      this.addDrawableChild(positionButton);
+      
       currentY += scaledRowSpacing;
       this.addDrawableChild(ButtonWidget.builder(Text.literal("Album Art: " + this.toggleText(this.settings.isShowAlbumArt())), (button) -> {
          this.pushUndo();
@@ -134,7 +140,8 @@ public class CustomizationScreen extends Screen {
       currentY += scaledRowSpacing;
       this.addDrawableChild(new ScaleSlider(leftCol, currentY, scaledContentWidth, scaledButtonHeight, this.settings.getHudScale(), guiScale));
       currentY += scaledRowSpacing;
-      this.addDrawableChild(ButtonWidget.builder(Text.literal("Accent Menu"), (button) -> 
+      
+      ButtonWidget accentButton = ButtonWidget.builder(Text.literal("Accent Menu"), (button) -> 
          MinecraftClient.getInstance().setScreen(new ColorPickerScreen(this, this.settings.getAccentColor(), 
             (color) -> {
                this.pushUndo();
@@ -146,9 +153,10 @@ public class CustomizationScreen extends Screen {
                this.settings.setAccentColorIndex(presetIndex);
                this.saveSettings();
             })))
-         .dimensions(leftCol, currentY, scaledSmallButtonWidth, scaledButtonHeight)
-         .tooltip(ButtonWidget.TooltipSupplier.create(Text.literal("§7Click to pick a color")))
-         .build());
+         .dimensions(leftCol, currentY, scaledSmallButtonWidth, scaledButtonHeight).build();
+      accentButton.setTooltip(Tooltip.of(Text.literal("§7Click to pick a color")));
+      this.addDrawableChild(accentButton);
+      
       this.addDrawableChild(ButtonWidget.builder(Text.literal("Shadow: " + this.toggleText(this.settings.isTextShadow())), (button) -> {
          this.pushUndo();
          this.settings.toggleTextShadow();
@@ -302,7 +310,7 @@ public class CustomizationScreen extends Screen {
    @Environment(EnvType.CLIENT)
    private class OpacitySlider extends SliderWidget {
       public OpacitySlider(int x, int y, int w, int h, float val, float guiScale) {
-         super(x, y, w, h, Text.literal(), (MathHelper.clamp(val, 0.3, 1.0F) - 0.3f) / 0.7f);
+         super(x, y, w, h, Text.literal(""), (MathHelper.clamp(val, 0.3f, 1.0F) - 0.3f) / 0.7f);
          this.updateMessage();
       }
 
@@ -322,7 +330,7 @@ public class CustomizationScreen extends Screen {
    @Environment(EnvType.CLIENT)
    private class ScaleSlider extends SliderWidget {
       public ScaleSlider(int x, int y, int w, int h, float val, float guiScale) {
-         super(x, y, w, h, Text.literal(), (MathHelper.clamp(val, 0.5F, 2.0F) - 0.5f) / 1.5f);
+         super(x, y, w, h, Text.literal(""), (MathHelper.clamp(val, 0.5F, 2.0F) - 0.5f) / 1.5f);
          this.updateMessage();
       }
 
@@ -342,7 +350,7 @@ public class CustomizationScreen extends Screen {
    @Environment(EnvType.CLIENT)
    private class LyricsLinesSlider extends SliderWidget {
       public LyricsLinesSlider(int x, int y, int w, int h, int val, float guiScale) {
-         super(x, y, w, h, Text.literal(), (double)(MathHelper.clamp(val, 1, 4) - 1) / 3.0);
+         super(x, y, w, h, Text.literal(""), (double)(MathHelper.clamp(val, 1, 4) - 1) / 3.0);
          this.updateMessage();
       }
 
@@ -361,7 +369,7 @@ public class CustomizationScreen extends Screen {
    @Environment(EnvType.CLIENT)
    private class LyricsFontSizeSlider extends SliderWidget {
       public LyricsFontSizeSlider(int x, int y, int w, int h, float val, float guiScale) {
-         super(x, y, w, h, Text.literal(), (MathHelper.clamp(val, 0.7F, 1.5F) - 0.7f) / 0.8f);
+         super(x, y, w, h, Text.literal(""), (MathHelper.clamp(val, 0.7F, 1.5F) - 0.7f) / 0.8f);
          this.updateMessage();
       }
 
@@ -381,7 +389,7 @@ public class CustomizationScreen extends Screen {
    @Environment(EnvType.CLIENT)
    private class LyricsOpacitySlider extends SliderWidget {
       public LyricsOpacitySlider(int x, int y, int w, int h, float val, float guiScale) {
-         super(x, y, w, h, Text.literal(), (MathHelper.clamp(val, 0.3F, 1.0F) - 0.3f) / 0.7f);
+         super(x, y, w, h, Text.literal(""), (MathHelper.clamp(val, 0.3F, 1.0F) - 0.3f) / 0.7f);
          this.updateMessage();
       }
 

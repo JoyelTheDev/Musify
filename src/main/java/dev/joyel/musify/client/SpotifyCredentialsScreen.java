@@ -9,6 +9,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -52,7 +53,8 @@ public class SpotifyCredentialsScreen extends Screen {
       this.addDrawableChild(this.clientSecretField);
       
       currentY += 49;
-      this.addDrawableChild(ButtonWidget.builder(Text.literal(Formatting.GREEN + "Save Credentials"), (button) -> {
+      
+      ButtonWidget saveButton = ButtonWidget.builder(Text.literal(Formatting.GREEN + "Save Credentials"), (button) -> {
          String clientId = this.clientIdField.getText().trim();
          String clientSecret = this.clientSecretField.getText().trim();
          config.setSpotifyCredentials(clientId, clientSecret);
@@ -60,9 +62,9 @@ public class SpotifyCredentialsScreen extends Screen {
             config.logout();
          }
          MinecraftClient.getInstance().setScreen(this.parent);
-      }).dimensions(centerX - 140, currentY, 137, BUTTON_HEIGHT)
-      .tooltip(ButtonWidget.TooltipSupplier.create(Text.translatable("Save your Spotify app credentials")))
-      .build());
+      }).dimensions(centerX - 140, currentY, 137, BUTTON_HEIGHT).build();
+      saveButton.setTooltip(Tooltip.of(Text.translatable("Save your Spotify app credentials")));
+      this.addDrawableChild(saveButton);
       
       this.addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"), (button) -> 
          MinecraftClient.getInstance().setScreen(this.parent))
@@ -70,11 +72,13 @@ public class SpotifyCredentialsScreen extends Screen {
          .build());
       
       currentY += 29;
-      this.addDrawableChild(ButtonWidget.builder(Text.literal(Formatting.BLUE + "Open Spotify Developer Dashboard"), (button) -> 
+      
+      ButtonWidget dashboardButton = ButtonWidget.builder(Text.literal(Formatting.BLUE + "Open Spotify Developer Dashboard"), (button) -> 
          this.openBrowser("https://developer.spotify.com/dashboard"))
          .dimensions(centerX - 140, currentY, CONTENT_WIDTH, BUTTON_HEIGHT)
-         .tooltip(ButtonWidget.TooltipSupplier.create(Text.translatable("Create a new Spotify app to get your credentials")))
-         .build());
+         .build();
+      dashboardButton.setTooltip(Tooltip.of(Text.translatable("Create a new Spotify app to get your credentials")));
+      this.addDrawableChild(dashboardButton);
    }
 
    @Override
@@ -84,7 +88,7 @@ public class SpotifyCredentialsScreen extends Screen {
       int currentY = this.height / 2 - 80;
       
       context.drawCenteredTextWithShadow(this.textRenderer, 
-         Text.literal(Formatting.GREEN + Formatting.BOLD + "Spotify App Configuration"), 
+         Text.literal(Formatting.GREEN + "Spotify App Configuration").formatted(Formatting.BOLD), 
          centerX, currentY - 25, ACCENT_COLOR);
       context.drawCenteredTextWithShadow(this.textRenderer, 
          Text.literal(Formatting.GRAY + "To use Musify, you need your own Spotify app."), 

@@ -24,7 +24,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.DynamicTexture;
+import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
 @Environment(EnvType.CLIENT)
@@ -36,7 +36,7 @@ public class AlbumArtCache {
    private static final String CACHE_DIR_NAME = "album_art_cache";
    private final LinkedHashMap<String, CacheEntry> memoryCache = new LinkedHashMap<String, CacheEntry>(20, 0.75F, true) {
       protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
-         if (this.size() > 20) {
+         if (this.size() > MAX_MEMORY_CACHE_SIZE) {
             AlbumArtCache.this.scheduleTextureCleanup(eldest.getValue());
             return true;
          } else {
@@ -80,9 +80,8 @@ public class AlbumArtCache {
          } finally {
             this.cacheLock.unlock();
          }
-      } else {
-         return null;
       }
+      return null;
    }
 
    public boolean isLoading(String url) {
@@ -100,9 +99,8 @@ public class AlbumArtCache {
          } finally {
             this.cacheLock.unlock();
          }
-      } else {
-         return false;
       }
+      return false;
    }
 
    public boolean loadAsync(String url, MinecraftClient mc) {
@@ -121,9 +119,8 @@ public class AlbumArtCache {
             });
             return true;
          }
-      } else {
-         return false;
       }
+      return false;
    }
 
    private void loadAlbumArtInternal(String url, MinecraftClient mc) {
@@ -133,6 +130,7 @@ public class AlbumArtCache {
          int dominantColor = 0xFF1E3A8A;
          File diskFile = this.getDiskCacheFile(url);
          File metaFile = this.getDiskMetaFile(url);
+         
          if (diskFile.exists() && metaFile.exists()) {
             try {
                img = ImageIO.read(diskFile);
@@ -181,15 +179,15 @@ public class AlbumArtCache {
          final int h = nativeImg.getHeight();
          final int finalDominantColor = dominantColor;
          final String finalUrl = url;
-         final NativeImage finalNativeImg = nativeImg;
+         
+         // Create a copy for texture registration
+         final NativeImage textureImage = new NativeImage(nativeImg.getWidth(), nativeImg.getHeight(), false);
+         textureImage.copyFrom(nativeImg);
          
          mc.execute(() -> {
-            NativeImage copy = null;
             try {
                String name = "album_" + this.textureCounter.incrementAndGet();
-               copy = new NativeImage(finalNativeImg.getWidth(), finalNativeImg.getHeight(), false);
-               copy.copyFrom(finalNativeImg);
-               DynamicTexture tex = new DynamicTexture(copy);
+               NativeImageBackedTexture tex = new NativeImageBackedTexture(textureImage);
                Identifier loc = Identifier.of("musify", name);
                mc.getTextureManager().registerTexture(loc, tex);
                CacheEntry entry = new CacheEntry(loc, new int[]{w, h}, finalDominantColor, finalUrl);
@@ -201,9 +199,7 @@ public class AlbumArtCache {
                }
             } catch (Exception e) {
                Musify.LOGGER.debug("Failed to register texture", e);
-               if (copy != null) {
-                  copy.close();
-               }
+               textureImage.close();
             }
          });
       } catch (Exception e) {
@@ -234,7 +230,7 @@ public class AlbumArtCache {
             hex.append(String.format("%02x", hash[i]));
          }
          return hex.toString();
-      } catch (Exception var6) {
+      } catch (Exception e) {
          return Integer.toHexString(url.hashCode());
       }
    }
@@ -448,49 +444,49 @@ public class AlbumArtCache {
 
       if (colorBuckets.isEmpty()) {
          return 0xFF1E3A8A;
-      } else {
-         List<double[]> candidates = new ArrayList<>(colorBuckets.values());
-         candidates.sort((a, b2) -> Double.compare(b2[0], a[0]));
-         double[] bestBucket = null;
-         double bestScore = -1.0;
+      }
+      
+      List<double[]> candidates = new ArrayList<>(colorBuckets.values());
+      candidates.sort((a, b2) -> Double.compare(b2[0], a[0]));
+      double[] bestBucket = null;
+      double bestScore = -1.0;
 
-         for (int i = 0; i < Math.min(10, candidates.size()); ++i) {
-            double[] bucket = candidates.get(i);
-            double avgBright = bucket[5] / bucket[0];
-            if (avgBright >= 0.25) {
-               double score = bucket[0] / (1.0 + (double) i * 0.3) * (0.7 + bucket[4] / bucket[0] * 0.3);
-               if (score > bestScore) {
-                  bestScore = score;
-                  bestBucket = bucket;
-               }
+      for (int i = 0; i < Math.min(10, candidates.size()); ++i) {
+         double[] bucket = candidates.get(i);
+         double avgBright = bucket[5] / bucket[0];
+         if (avgBright >= 0.25) {
+            double score = bucket[0] / (1.0 + (double) i * 0.3) * (0.7 + bucket[4] / bucket[0] * 0.3);
+            if (score > bestScore) {
+               bestScore = score;
+               bestBucket = bucket;
             }
-         }
-
-         if (bestBucket == null) {
-            for (double[] bucket : candidates) {
-               if (bestBucket == null || bucket[5] / bucket[0] > bestBucket[5] / bestBucket[0]) {
-                  bestBucket = bucket;
-               }
-            }
-         }
-
-         if (bestBucket == null) {
-            return 0xFF1E3A8A;
-         } else {
-            int r = Math.max(0, Math.min(255, (int) (bestBucket[1] / bestBucket[0])));
-            int g = Math.max(0, Math.min(255, (int) (bestBucket[2] / bestBucket[0])));
-            int b = Math.max(0, Math.min(255, (int) (bestBucket[3] / bestBucket[0])));
-            float[] hsv = this.rgbToHsv(r, g, b);
-            if (hsv[1] >= 0.15F && hsv[2] < 0.6F) {
-               hsv[1] = Math.min(1.0F, hsv[1] * (1.0F + (1.0F - hsv[2] / 0.6F) * 0.5F));
-            }
-            if (hsv[2] < 0.25F) {
-               hsv[2] = 0.25F + hsv[2] * 0.5F;
-            }
-            int[] adjusted = this.hsvToRgb(hsv[0], hsv[1], hsv[2]);
-            return 0xFF000000 | adjusted[0] << 16 | adjusted[1] << 8 | adjusted[2];
          }
       }
+
+      if (bestBucket == null) {
+         for (double[] bucket : candidates) {
+            if (bestBucket == null || bucket[5] / bucket[0] > bestBucket[5] / bestBucket[0]) {
+               bestBucket = bucket;
+            }
+         }
+      }
+
+      if (bestBucket == null) {
+         return 0xFF1E3A8A;
+      }
+      
+      int r = Math.max(0, Math.min(255, (int) (bestBucket[1] / bestBucket[0])));
+      int g = Math.max(0, Math.min(255, (int) (bestBucket[2] / bestBucket[0])));
+      int b = Math.max(0, Math.min(255, (int) (bestBucket[3] / bestBucket[0])));
+      float[] hsv = this.rgbToHsv(r, g, b);
+      if (hsv[1] >= 0.15F && hsv[2] < 0.6F) {
+         hsv[1] = Math.min(1.0F, hsv[1] * (1.0F + (1.0F - hsv[2] / 0.6F) * 0.5F));
+      }
+      if (hsv[2] < 0.25F) {
+         hsv[2] = 0.25F + hsv[2] * 0.5F;
+      }
+      int[] adjusted = this.hsvToRgb(hsv[0], hsv[1], hsv[2]);
+      return 0xFF000000 | adjusted[0] << 16 | adjusted[1] << 8 | adjusted[2];
    }
 
    private float[] rgbToHsv(int r, int g, int b) {

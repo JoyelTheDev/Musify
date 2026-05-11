@@ -267,13 +267,14 @@ public class HUDRenderer {
             float artScale = 0.95F + 0.05F * easeOutCubic(trackChangeAnim);
             int drawSize = (int)((float)iconSize * artScale);
             int offset = (iconSize - drawSize) / 2;
-            graphics.drawTexture(cached.textureId, 
+            graphics.drawTexture(RenderLayer::getGuiTextured, 
+                     cached.textureId, 
                      artX + offset, 
                      artY + offset, 
-                     drawSize, 
-                     drawSize, 
                      0.0F, 
                      0.0F, 
+                     drawSize, 
+                     drawSize, 
                      drawSize, 
                      drawSize, 
                      size[0], 

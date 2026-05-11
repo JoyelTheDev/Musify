@@ -268,14 +268,16 @@ public class HUDRenderer {
             int drawSize = (int)((float)iconSize * artScale);
             int offset = (iconSize - drawSize) / 2;
             graphics.drawTexture(cached.textureId, 
-                                 artX + offset, 
-                                 artY + offset, 
-                                 0, 
-                                 0, 
-                                 drawSize, 
-                                 drawSize, 
-                                 size[0], 
-                                 size[1]);
+                     artX + offset, 
+                     artY + offset, 
+                     drawSize, 
+                     drawSize, 
+                     0.0F, 
+                     0.0F, 
+                     drawSize, 
+                     drawSize, 
+                     size[0], 
+                     size[1]);
             
             if (artStyle == HUDSettings.AlbumArtStyle.ROUNDED) {
                drawRoundedCornerMask(graphics, artX + offset, artY + offset, drawSize, drawSize, 6, applyAlpha(BG_MAIN, bgAlpha));

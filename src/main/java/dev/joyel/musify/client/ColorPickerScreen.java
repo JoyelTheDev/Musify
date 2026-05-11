@@ -8,6 +8,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -55,12 +56,14 @@ public class ColorPickerScreen extends Screen {
          int x = swatchStartX + col * (SWATCH_SIZE + SWATCH_SPACING);
          int y = swatchStartY + row * (SWATCH_SIZE + SWATCH_SPACING);
          final int index = i;
-         this.addDrawableChild(ButtonWidget.builder(Text.literal(""), (button) -> {
+         ButtonWidget button = ButtonWidget.builder(Text.literal(""), (buttonWidget) -> {
             this.selectedColor = this.getPresetColor(index);
             this.selectedPresetIndex = index;
             this.hexInput.setText(this.colorToHex(this.selectedColor));
             HUDSettings.getInstance().setPreviewColor(this.selectedColor);
-         }).dimensions(x, y, SWATCH_SIZE, SWATCH_SIZE).tooltip(ButtonWidget.TooltipSupplier.create(Text.translatable(HUDSettings.ACCENT_COLOR_NAMES[index]))).build());
+         }).dimensions(x, y, SWATCH_SIZE, SWATCH_SIZE).build();
+         button.setTooltip(Tooltip.of(Text.translatable(HUDSettings.ACCENT_COLOR_NAMES[index])));
+         this.addDrawableChild(button);
       }
 
       int rowCount = (HUDSettings.ACCENT_COLORS.length + PRESET_COLUMNS - 1) / PRESET_COLUMNS;
@@ -80,12 +83,12 @@ public class ColorPickerScreen extends Screen {
          } else {
             this.onColorSelected.accept(this.selectedColor);
          }
-         MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new CustomizationScreen()));
+         MinecraftClient.getInstance().setScreen(new CustomizationScreen());
       }).dimensions(centerX - 100, hexInputY + 30, 95, 20).build());
       
       this.addDrawableChild(ButtonWidget.builder(Text.literal(Formatting.RED + "Cancel"), (button) -> {
          HUDSettings.getInstance().clearPreviewColor();
-         MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new CustomizationScreen()));
+         MinecraftClient.getInstance().setScreen(new CustomizationScreen());
       }).dimensions(centerX + 5, hexInputY + 30, 95, 20).build());
    }
 
@@ -94,7 +97,7 @@ public class ColorPickerScreen extends Screen {
       super.render(context, mouseX, mouseY, partialTick);
       int centerX = this.width / 2;
       int contentY = Math.max(30, this.height / 2 - 120);
-      context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, contentY, -1);
+      context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, contentY, 0xFFFFFFFF);
       int gridWidth = 192;
       int swatchStartX = centerX - gridWidth / 2;
       int swatchStartY = contentY + 35;
@@ -174,7 +177,7 @@ public class ColorPickerScreen extends Screen {
    @Override
    public void close() {
       HUDSettings.getInstance().clearPreviewColor();
-      MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new CustomizationScreen()));
+      MinecraftClient.getInstance().setScreen(new CustomizationScreen());
    }
 
    @Override

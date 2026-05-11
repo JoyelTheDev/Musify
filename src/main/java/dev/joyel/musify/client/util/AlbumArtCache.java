@@ -185,23 +185,32 @@ public class AlbumArtCache {
          textureImage.copyFrom(nativeImg);
          
          mc.execute(() -> {
-            try {
-               String name = "album_" + this.textureCounter.incrementAndGet();
-               NativeImageBackedTexture tex = new NativeImageBackedTexture(textureImage);
-               Identifier loc = Identifier.of("musify", name);
-               mc.getTextureManager().registerTexture(loc, tex);
-               CacheEntry entry = new CacheEntry(loc, new int[]{w, h}, finalDominantColor, finalUrl);
-               this.cacheLock.lock();
-               try {
-                  this.memoryCache.put(finalUrl, entry);
-               } finally {
-                  this.cacheLock.unlock();
-               }
-            } catch (Exception e) {
-               Musify.LOGGER.debug("Failed to register texture", e);
-               textureImage.close();
-            }
-         });
+   NativeImage texImage = null;
+   try {
+      String name = "album_" + this.textureCounter.incrementAndGet();
+      // Create a copy of the NativeImage for the texture
+      texImage = new NativeImage(textureImage.getWidth(), textureImage.getHeight(), false);
+      texImage.copyFrom(textureImage);
+      
+      // Create the texture with a name supplier
+      NativeImageBackedTexture tex = new NativeImageBackedTexture(() -> name, texImage);
+      Identifier loc = Identifier.of("musify", name);
+      mc.getTextureManager().registerTexture(loc, tex);
+      CacheEntry entry = new CacheEntry(loc, new int[]{w, h}, finalDominantColor, finalUrl);
+      this.cacheLock.lock();
+      try {
+         this.memoryCache.put(finalUrl, entry);
+      } finally {
+         this.cacheLock.unlock();
+      }
+      texImage = null; // Texture now owns the image
+   } catch (Exception e) {
+      Musify.LOGGER.debug("Failed to register texture", e);
+      if (texImage != null) {
+         texImage.close();
+      }
+   }
+  });
       } catch (Exception e) {
          Musify.LOGGER.debug("Failed to load album art: {}", e.getMessage());
       } finally {
